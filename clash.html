@@ -1,0 +1,1505 @@
+<!doctype html>
+<html lang="en">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Epic Clash Arena</title>
+  <script src="/_sdk/data_sdk.js"></script>
+  <script src="/_sdk/element_sdk.js"></script>
+  <style>
+    body {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Arial Black', Arial, sans-serif;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f0f23 100%);
+      height: 100%;
+      overflow: hidden;
+      position: relative;
+    }
+
+    html {
+      height: 100%;
+    }
+
+    .arena-background {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: 
+        radial-gradient(circle at 30% 20%, rgba(255, 107, 107, 0.1) 0%, transparent 50%),
+        radial-gradient(circle at 70% 80%, rgba(102, 126, 234, 0.1) 0%, transparent 50%),
+        linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f0f23 100%);
+      z-index: 1;
+    }
+
+    .arena-floor {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      height: 30%;
+      background: linear-gradient(180deg, transparent 0%, rgba(139, 92, 246, 0.2) 50%, rgba(139, 92, 246, 0.4) 100%);
+      border-top: 2px solid rgba(139, 92, 246, 0.6);
+      z-index: 2;
+    }
+
+    .energy-particles {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 3;
+    }
+
+    .energy-particle {
+      position: absolute;
+      width: 4px;
+      height: 4px;
+      background: rgba(255, 255, 255, 0.8);
+      border-radius: 50%;
+      animation: energy-float 4s infinite ease-in-out;
+    }
+
+    @keyframes energy-float {
+      0%, 100% { transform: translateY(0px) scale(1); opacity: 0.3; }
+      50% { transform: translateY(-30px) scale(1.5); opacity: 1; }
+    }
+
+    .game-container {
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      padding: 20px;
+      color: #ffffff;
+      position: relative;
+      z-index: 10;
+    }
+
+    .arena-header {
+      text-align: center;
+      margin-bottom: 20px;
+      position: relative;
+    }
+
+    .arena-title {
+      font-size: 42px;
+      margin: 0;
+      text-shadow: 0 0 30px rgba(255, 107, 107, 0.8);
+      letter-spacing: 3px;
+      background: linear-gradient(45deg, #ff6b6b, #ffd93d, #667eea);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      animation: title-glow 3s ease-in-out infinite alternate;
+    }
+
+    @keyframes title-glow {
+      0% { filter: drop-shadow(0 0 10px rgba(255, 107, 107, 0.5)); }
+      100% { filter: drop-shadow(0 0 20px rgba(255, 217, 61, 0.8)); }
+    }
+
+    .battle-stats {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      padding: 0 50px;
+    }
+
+    .fighter-stats {
+      background: rgba(0, 0, 0, 0.4);
+      padding: 15px 20px;
+      border-radius: 15px;
+      border: 2px solid rgba(255, 255, 255, 0.2);
+      min-width: 200px;
+    }
+
+    .skill-info {
+      background: rgba(0, 0, 0, 0.4);
+      padding: 15px 20px;
+      border-radius: 15px;
+      border: 2px solid rgba(255, 255, 255, 0.2);
+      min-width: 300px;
+      text-align: center;
+    }
+
+    .skill-preview h4 {
+      margin: 0 0 10px 0;
+      color: #ffd93d;
+      font-size: 16px;
+    }
+
+    .skill-list {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+    }
+
+    .skill-item {
+      background: rgba(255, 255, 255, 0.1);
+      padding: 8px;
+      border-radius: 8px;
+      font-size: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .skill-item.ready {
+      border-color: #00ff88;
+      background: rgba(0, 255, 136, 0.1);
+    }
+
+    .skill-item.cooldown {
+      border-color: #ff6b6b;
+      background: rgba(255, 107, 107, 0.1);
+      opacity: 0.6;
+    }
+
+    .class-display {
+      font-size: 14px;
+      color: #ffd93d;
+      margin-bottom: 10px;
+      font-weight: bold;
+    }
+
+    .clash-arena {
+      flex: 1;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 20px 0;
+      overflow: hidden;
+    }
+
+    .battlefield {
+      width: 100%;
+      height: 300px;
+      position: relative;
+      background: linear-gradient(90deg, 
+        rgba(102, 126, 234, 0.3) 0%, 
+        transparent 20%, 
+        transparent 80%, 
+        rgba(255, 107, 107, 0.3) 100%);
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      border-radius: 20px;
+      overflow: hidden;
+    }
+
+    .fighter {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      transition: all 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    }
+
+    .player-fighter {
+      left: 50px;
+    }
+
+    .enemy-fighter {
+      right: 50px;
+    }
+
+    .fighter.charging {
+      animation: charge-forward 1.2s ease-out;
+    }
+
+    .fighter.clashing {
+      animation: clash-impact 0.8s ease-in-out;
+    }
+
+    .fighter.retreating {
+      animation: retreat-back 1s ease-in;
+    }
+
+    @keyframes charge-forward {
+      0% { transform: translateY(-50%) scale(1); }
+      50% { transform: translateY(-50%) scale(1.2) translateX(200px); }
+      100% { transform: translateY(-50%) scale(1.1) translateX(150px); }
+    }
+
+    @keyframes clash-impact {
+      0%, 100% { transform: translateY(-50%) scale(1.1) translateX(150px); }
+      25% { transform: translateY(-50%) scale(1.4) translateX(180px) rotate(10deg); }
+      50% { transform: translateY(-50%) scale(1.5) translateX(200px) rotate(-5deg); }
+      75% { transform: translateY(-50%) scale(1.3) translateX(170px) rotate(5deg); }
+    }
+
+    @keyframes retreat-back {
+      0% { transform: translateY(-50%) scale(1.1) translateX(150px); }
+      100% { transform: translateY(-50%) scale(1); }
+    }
+
+    .fighter-avatar {
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      border: 4px solid;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 70px;
+      box-shadow: 0 15px 40px rgba(0, 0, 0, 0.6);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .player-avatar {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border-color: #667eea;
+      box-shadow: 0 0 30px rgba(102, 126, 234, 0.6);
+    }
+
+    .enemy-avatar {
+      background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+      border-color: #f5576c;
+      box-shadow: 0 0 30px rgba(245, 87, 108, 0.6);
+    }
+
+    .fighter-avatar.power-up {
+      animation: power-surge 1s ease-in-out;
+    }
+
+    @keyframes power-surge {
+      0%, 100% { transform: scale(1); box-shadow: 0 0 30px currentColor; }
+      50% { transform: scale(1.2); box-shadow: 0 0 60px currentColor, 0 0 90px currentColor; }
+    }
+
+    .clash-effects {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+      z-index: 20;
+    }
+
+    .clash-burst {
+      width: 200px;
+      height: 200px;
+      border-radius: 50%;
+      background: radial-gradient(circle, 
+        rgba(255, 255, 255, 0.9) 0%, 
+        rgba(255, 217, 61, 0.7) 30%, 
+        rgba(255, 107, 107, 0.5) 60%, 
+        transparent 100%);
+      animation: clash-explosion 1s ease-out;
+      opacity: 0;
+    }
+
+    @keyframes clash-explosion {
+      0% { transform: scale(0) rotate(0deg); opacity: 1; }
+      50% { transform: scale(1.5) rotate(180deg); opacity: 0.8; }
+      100% { transform: scale(3) rotate(360deg); opacity: 0; }
+    }
+
+    .energy-wave {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 100px;
+      height: 100px;
+      border: 3px solid rgba(255, 255, 255, 0.8);
+      border-radius: 50%;
+      animation: energy-ripple 1.5s ease-out infinite;
+    }
+
+    @keyframes energy-ripple {
+      0% { transform: translate(-50%, -50%) scale(0); opacity: 1; }
+      100% { transform: translate(-50%, -50%) scale(4); opacity: 0; }
+    }
+
+    .damage-burst {
+      position: absolute;
+      font-size: 36px;
+      font-weight: bold;
+      color: #ff0000;
+      text-shadow: 0 0 10px #ff0000;
+      pointer-events: none;
+      animation: damage-explosion 2s ease-out forwards;
+      z-index: 25;
+    }
+
+    @keyframes damage-explosion {
+      0% { transform: scale(0) rotate(0deg); opacity: 1; }
+      50% { transform: scale(1.5) rotate(180deg); opacity: 1; }
+      100% { transform: scale(2) rotate(360deg); opacity: 0; }
+    }
+
+    .health-bar-container {
+      margin-bottom: 10px;
+    }
+
+    .health-label {
+      font-size: 14px;
+      margin-bottom: 5px;
+      font-weight: bold;
+    }
+
+    .health-bar {
+      height: 25px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 15px;
+      overflow: hidden;
+      position: relative;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+    }
+
+    .health-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #00ff88 0%, #00cc6a 100%);
+      transition: width 1s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      font-size: 12px;
+      color: #ffffff;
+      text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+      position: relative;
+    }
+
+    .health-fill::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.3) 50%, transparent 100%);
+      animation: health-shine 2s ease-in-out infinite;
+    }
+
+    @keyframes health-shine {
+      0%, 100% { transform: translateX(-100%); }
+      50% { transform: translateX(100%); }
+    }
+
+    .mana-bar {
+      height: 20px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 10px;
+      overflow: hidden;
+      border: 1px solid rgba(59, 130, 246, 0.5);
+      margin-top: 5px;
+    }
+
+    .mana-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #3b82f6 0%, #1d4ed8 100%);
+      transition: width 0.8s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      font-size: 11px;
+      color: #ffffff;
+      text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+    }
+
+    .battle-controls {
+      text-align: center;
+      padding: 20px;
+      background: rgba(0, 0, 0, 0.3);
+      border-radius: 20px;
+      border: 2px solid rgba(255, 255, 255, 0.2);
+      margin-top: 20px;
+    }
+
+    .clash-timer {
+      width: 100%;
+      height: 8px;
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 4px;
+      margin-bottom: 20px;
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.3);
+    }
+
+    .timer-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #ff6b6b 0%, #ffd93d 50%, #00ff88 100%);
+      transition: width linear;
+      position: relative;
+    }
+
+    .timer-fill::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.6) 50%, transparent 100%);
+      animation: timer-pulse 1s ease-in-out infinite;
+    }
+
+    @keyframes timer-pulse {
+      0%, 100% { opacity: 0; }
+      50% { opacity: 1; }
+    }
+
+    .action-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+
+    .clash-btn {
+      padding: 15px 25px;
+      font-size: 16px;
+      font-weight: bold;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .clash-btn::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+      transition: left 0.5s;
+    }
+
+    .clash-btn:hover:not(:disabled)::before {
+      left: 100%;
+    }
+
+    .clash-btn:hover:not(:disabled) {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.5);
+    }
+
+    .clash-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .attack-btn { 
+      background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%); 
+      color: white;
+      border: 2px solid #ff4757;
+    }
+    
+    .special-btn { 
+      background: linear-gradient(135deg, #ffd93d 0%, #f6c23e 100%); 
+      color: #1a1a2e;
+      border: 2px solid #ffa502;
+    }
+    
+    .ultimate-btn { 
+      background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); 
+      color: white;
+      border: 2px solid #6c5ce7;
+      box-shadow: 0 0 25px rgba(139, 92, 246, 0.5);
+    }
+    
+    .defend-btn { 
+      background: linear-gradient(135deg, #74b9ff 0%, #0984e3 100%); 
+      color: white;
+      border: 2px solid #0984e3;
+    }
+
+    .battle-log {
+      max-height: 100px;
+      overflow-y: auto;
+      background: rgba(0, 0, 0, 0.5);
+      padding: 15px;
+      border-radius: 10px;
+      font-size: 13px;
+      text-align: left;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .log-entry {
+      margin-bottom: 8px;
+      padding: 5px 10px;
+      border-left: 3px solid #667eea;
+      padding-left: 12px;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 5px;
+    }
+
+    .log-entry.clash { border-left-color: #ffd93d; background: rgba(255, 217, 61, 0.1); }
+    .log-entry.damage { border-left-color: #ff6b6b; background: rgba(255, 107, 107, 0.1); }
+    .log-entry.critical { border-left-color: #ff0000; font-weight: bold; background: rgba(255, 0, 0, 0.1); }
+
+    .character-selection, .game-over {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.95);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      flex-direction: column;
+    }
+
+    .character-selection.show, .game-over.show {
+      display: flex;
+    }
+
+    .modal-content {
+      text-align: center;
+      padding: 40px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border-radius: 20px;
+      box-shadow: 0 25px 80px rgba(0, 0, 0, 0.6);
+      max-width: 90%;
+      max-height: 90%;
+      overflow-y: auto;
+      border: 2px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .class-selection {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 25px;
+      margin: 25px 0;
+    }
+
+    .class-card {
+      background: rgba(0, 0, 0, 0.4);
+      padding: 25px;
+      border-radius: 15px;
+      cursor: pointer;
+      transition: all 0.4s ease;
+      border: 3px solid transparent;
+    }
+
+    .class-card:hover {
+      transform: translateY(-8px);
+      border-color: #ffffff;
+      box-shadow: 0 15px 40px rgba(0, 0, 0, 0.5);
+    }
+
+    .class-card.selected {
+      border-color: #ffd93d;
+      background: rgba(255, 217, 61, 0.2);
+      box-shadow: 0 0 30px rgba(255, 217, 61, 0.4);
+    }
+
+    .class-icon {
+      font-size: 60px;
+      margin-bottom: 15px;
+    }
+
+    .skill-preview-list {
+      margin-top: 15px;
+      text-align: left;
+    }
+
+    .skill-preview-list div {
+      font-size: 12px;
+      margin: 5px 0;
+      padding: 3px 8px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 5px;
+      border-left: 2px solid rgba(255, 217, 61, 0.6);
+    }
+
+    @media (max-width: 768px) {
+      .arena-title { font-size: 28px; }
+      .fighter-avatar { width: 100px; height: 100px; font-size: 50px; }
+      .action-grid { grid-template-columns: repeat(2, 1fr); }
+      .battle-stats { flex-direction: column; gap: 15px; padding: 0 20px; }
+    }
+  </style>
+  <style>@view-transition { navigation: auto; }</style>
+  <script src="https://cdn.tailwindcss.com" type="text/javascript"></script>
+ </head>
+ <body>
+  <div class="arena-background"></div>
+  <div class="arena-floor"></div>
+  <div class="energy-particles" id="energyParticles"></div>
+  <div class="game-container">
+   <div class="arena-header">
+    <h1 class="arena-title" id="arenaTitle">⚔️ EPIC CLASH ARENA ⚔️</h1>
+   </div>
+   <div class="battle-stats">
+    <div class="fighter-stats">
+     <div class="health-label">
+      🏆 CHAMPION
+     </div>
+     <div class="class-display" id="playerClassDisplay">
+      Warrior
+     </div>
+     <div class="health-bar-container">
+      <div class="health-bar">
+       <div class="health-fill" id="playerHealth" style="width: 100%;">
+        100 / 100
+       </div>
+      </div>
+     </div>
+     <div class="mana-bar">
+      <div class="mana-fill" id="playerMana" style="width: 100%;">
+       50 / 50
+      </div>
+     </div>
+    </div>
+    <div class="skill-info" id="skillInfo">
+     <div class="skill-preview">
+      <h4>Skills Ready</h4>
+      <div class="skill-list" id="skillList"></div>
+     </div>
+    </div>
+    <div class="fighter-stats">
+     <div class="health-label">
+      👾 CHALLENGER
+     </div>
+     <div class="health-bar-container">
+      <div class="health-bar">
+       <div class="health-fill" id="enemyHealth" style="width: 100%;">
+        80 / 80
+       </div>
+      </div>
+     </div>
+    </div>
+   </div>
+   <div class="clash-arena">
+    <div class="battlefield">
+     <div class="fighter player-fighter" id="playerFighter">
+      <div class="fighter-avatar player-avatar" id="playerAvatar">
+       ⚔️
+      </div>
+     </div>
+     <div class="fighter enemy-fighter" id="enemyFighter">
+      <div class="fighter-avatar enemy-avatar" id="enemyAvatar">
+       👾
+      </div>
+     </div>
+     <div class="clash-effects" id="clashEffects"></div>
+     <div class="energy-wave" id="energyWave" style="display: none;"></div>
+    </div>
+   </div>
+   <div class="battle-controls">
+    <div class="clash-timer">
+     <div class="timer-fill" id="timerFill" style="width: 100%;"></div>
+    </div>
+    <div class="action-grid"><button class="clash-btn attack-btn" id="skill1Btn">⚔️ SKILL 1</button> <button class="clash-btn special-btn" id="skill2Btn">🛡️ SKILL 2</button> <button class="clash-btn special-btn" id="skill3Btn">🌪️ SKILL 3</button> <button class="clash-btn ultimate-btn" id="skill4Btn">💥 SKILL 4</button> <button class="clash-btn defend-btn" id="defendBtn">🛡️ GUARD STANCE</button>
+    </div>
+    <div class="battle-log" id="battleLog"></div>
+   </div>
+  </div><!-- Character Selection Modal -->
+  <div class="character-selection" id="characterSelection">
+   <div class="modal-content">
+    <h2>Choose Your Fighter</h2>
+    <div class="class-selection">
+     <div class="class-card" data-class="warrior">
+      <div class="class-icon">
+       ⚔️
+      </div>
+      <h3>Warrior</h3>
+      <p>Balanced fighter with devastating clashes</p>
+      <div class="skill-preview-list">
+       <div>
+        ⚔️ Sword Strike
+       </div>
+       <div>
+        🛡️ Shield Bash (Stun)
+       </div>
+       <div>
+        🌪️ Whirlwind (Multi-hit)
+       </div>
+       <div>
+        💢 Berserker Rage (Ultimate)
+       </div>
+      </div>
+     </div>
+     <div class="class-card" data-class="mage">
+      <div class="class-icon">
+       🔮
+      </div>
+      <h3>Mage</h3>
+      <p>Master of magical energy attacks</p>
+      <div class="skill-preview-list">
+       <div>
+        ✨ Magic Missile
+       </div>
+       <div>
+        🔥 Fireball (Burn)
+       </div>
+       <div>
+        ❄️ Ice Shard (Freeze)
+       </div>
+       <div>
+        ☄️ Meteor (Devastate)
+       </div>
+      </div>
+     </div>
+     <div class="class-card" data-class="rogue">
+      <div class="class-icon">
+       🗡️
+      </div>
+      <h3>Rogue</h3>
+      <p>Swift striker with critical clashes</p>
+      <div class="skill-preview-list">
+       <div>
+        🗡️ Quick Strike
+       </div>
+       <div>
+        🐍 Poison Blade (Poison)
+       </div>
+       <div>
+        👤 Shadow Step (Dodge)
+       </div>
+       <div>
+        💀 Assassinate (Critical)
+       </div>
+      </div>
+     </div>
+    </div><button class="clash-btn attack-btn" id="startGameBtn" disabled>ENTER ARENA</button>
+   </div>
+  </div><!-- Game Over Modal -->
+  <div class="game-over" id="gameOver">
+   <div class="modal-content">
+    <div class="game-over-title" id="gameOverTitle">
+     🏆
+    </div>
+    <div class="game-over-message" id="gameOverMessage">
+     Victory!
+    </div>
+    <div id="rewardMessage"></div><button class="clash-btn attack-btn" onclick="resetGame()">NEXT BATTLE</button>
+   </div>
+  </div>
+  <script>
+    const defaultConfig = {
+      game_title: "⚔️ EPIC CLASH ARENA ⚔️",
+      arena_theme: "Mystical Colosseum",
+      background_color: "#1a1a2e",
+      surface_color: "#16213e",
+      text_color: "#ffffff",
+      primary_action_color: "#ff6b6b",
+      secondary_action_color: "#667eea"
+    };
+
+    let gameState = {
+      playerHealth: 100,
+      playerMaxHealth: 100,
+      playerMana: 50,
+      playerMaxMana: 50,
+      enemyHealth: 80,
+      enemyMaxHealth: 80,
+      isPlayerTurn: true,
+      gameActive: false,
+      playerClass: 'warrior',
+      playerLevel: 1,
+      playerXP: 0,
+      playerWins: 0,
+      turnTimeLeft: 10,
+      timerInterval: null,
+      isClashing: false,
+      skillCooldowns: {
+        skill1: 0,
+        skill2: 0,
+        skill3: 0,
+        skill4: 0
+      },
+      statusEffects: {
+        player: {},
+        enemy: {}
+      }
+    };
+
+    const classes = {
+      warrior: {
+        name: 'Warrior',
+        icon: '⚔️',
+        description: 'Balanced fighter with devastating clashes',
+        healthBonus: 20,
+        manaBonus: 0,
+        attackBonus: 1.2,
+        critChance: 0.15,
+        skills: {
+          skill1: { name: 'Sword Strike', icon: '⚔️', damage: [15, 25], mana: 10, cooldown: 0, effect: 'none', description: 'Basic sword attack' },
+          skill2: { name: 'Shield Bash', icon: '🛡️', damage: [20, 30], mana: 20, cooldown: 2, effect: 'stun', description: 'Stuns enemy for 1 turn' },
+          skill3: { name: 'Whirlwind', icon: '🌪️', damage: [25, 40], mana: 30, cooldown: 3, effect: 'multi', description: 'Hits multiple times' },
+          skill4: { name: 'Berserker Rage', icon: '💢', damage: [40, 60], mana: 50, cooldown: 5, effect: 'rage', description: 'Massive damage + strength boost' }
+        }
+      },
+      mage: {
+        name: 'Mage',
+        icon: '🔮',
+        description: 'Master of magical energy attacks',
+        healthBonus: -10,
+        manaBonus: 25,
+        attackBonus: 0.9,
+        critChance: 0.20,
+        skills: {
+          skill1: { name: 'Magic Missile', icon: '✨', damage: [12, 22], mana: 15, cooldown: 0, effect: 'none', description: 'Basic magic attack' },
+          skill2: { name: 'Fireball', icon: '🔥', damage: [25, 35], mana: 25, cooldown: 2, effect: 'burn', description: 'Burns enemy over time' },
+          skill3: { name: 'Ice Shard', icon: '❄️', damage: [20, 30], mana: 30, cooldown: 3, effect: 'freeze', description: 'Freezes enemy for 2 turns' },
+          skill4: { name: 'Meteor', icon: '☄️', damage: [50, 80], mana: 60, cooldown: 6, effect: 'devastate', description: 'Devastating area attack' }
+        }
+      },
+      rogue: {
+        name: 'Rogue',
+        icon: '🗡️',
+        description: 'Swift striker with critical clashes',
+        healthBonus: 0,
+        manaBonus: 10,
+        attackBonus: 1.0,
+        critChance: 0.30,
+        skills: {
+          skill1: { name: 'Quick Strike', icon: '🗡️', damage: [10, 20], mana: 8, cooldown: 0, effect: 'none', description: 'Fast basic attack' },
+          skill2: { name: 'Poison Blade', icon: '🐍', damage: [18, 28], mana: 20, cooldown: 2, effect: 'poison', description: 'Poisons enemy over time' },
+          skill3: { name: 'Shadow Step', icon: '👤', damage: [15, 25], mana: 25, cooldown: 3, effect: 'dodge', description: 'Grants dodge chance' },
+          skill4: { name: 'Assassinate', icon: '💀', damage: [35, 55], mana: 45, cooldown: 4, effect: 'critical', description: 'High critical chance' }
+        }
+      }
+    };
+
+    const enemies = [
+      { name: 'GOBLIN WARRIOR', icon: '👾', health: 80, level: 1 },
+      { name: 'ORC BERSERKER', icon: '👹', health: 120, level: 2 },
+      { name: 'TROLL CHAMPION', icon: '🧌', health: 180, level: 3 },
+      { name: 'DRAGON LORD', icon: '🐉', health: 250, level: 4 },
+      { name: 'DEMON KING', icon: '😈', health: 300, level: 5 }
+    ];
+
+    let playerStats = {
+      wins: 0,
+      losses: 0,
+      totalDamage: 0,
+      level: 1,
+      unlockedAchievements: []
+    };
+
+    let currentRecordCount = 0;
+    let allPlayerData = [];
+
+    // Data SDK Handler
+    const dataHandler = {
+      onDataChanged(data) {
+        allPlayerData = data;
+        currentRecordCount = data.length;
+        
+        if (data.length > 0) {
+          const latestPlayer = data[data.length - 1];
+          updatePlayerStatsFromData(latestPlayer);
+        }
+      }
+    };
+
+    function updatePlayerStatsFromData(playerData) {
+      if (playerData) {
+        playerStats.wins = playerData.wins || 0;
+        playerStats.losses = playerData.losses || 0;
+        playerStats.totalDamage = playerData.total_damage || 0;
+        playerStats.level = playerData.level || 1;
+      }
+    }
+
+    async function savePlayerProgress() {
+      if (currentRecordCount >= 999) {
+        showToast("Maximum limit of 999 records reached. Cannot save progress.");
+        return;
+      }
+
+      const playerData = {
+        player_name: 'Champion',
+        class: gameState.playerClass,
+        level: playerStats.level,
+        experience: gameState.playerXP,
+        wins: playerStats.wins,
+        losses: playerStats.losses,
+        total_damage: playerStats.totalDamage,
+        achievements: playerStats.unlockedAchievements.join(','),
+        equipment: 'Legendary Weapon',
+        created_at: new Date().toISOString()
+      };
+
+      const result = await window.dataSdk.create(playerData);
+      if (!result.isOk) {
+        showToast("Failed to save progress: " + result.error.message);
+      }
+    }
+
+    function showToast(message) {
+      const toast = document.createElement('div');
+      toast.style.cssText = `
+        position: fixed; top: 20px; right: 20px; z-index: 2000;
+        background: rgba(0,0,0,0.9); color: white; padding: 15px 20px;
+        border-radius: 10px; font-size: 14px; max-width: 300px;
+        border: 2px solid #667eea;
+      `;
+      toast.textContent = message;
+      document.body.appendChild(toast);
+      setTimeout(() => document.body.removeChild(toast), 3000);
+    }
+
+    function createEnergyParticles() {
+      const container = document.getElementById('energyParticles');
+      for (let i = 0; i < 15; i++) {
+        const particle = document.createElement('div');
+        particle.className = 'energy-particle';
+        particle.style.left = Math.random() * 100 + '%';
+        particle.style.top = Math.random() * 100 + '%';
+        particle.style.animationDelay = Math.random() * 4 + 's';
+        container.appendChild(particle);
+      }
+    }
+
+    function addLog(message, type = '') {
+      const log = document.getElementById('battleLog');
+      const entry = document.createElement('div');
+      entry.className = `log-entry ${type}`;
+      entry.textContent = message;
+      log.insertBefore(entry, log.firstChild);
+      
+      if (log.children.length > 6) {
+        log.removeChild(log.lastChild);
+      }
+    }
+
+    function updateHealthBar(element, current, max) {
+      const percentage = Math.max(0, (current / max) * 100);
+      element.style.width = percentage + '%';
+      element.textContent = `${Math.max(0, current)} / ${max}`;
+    }
+
+    function updateManaBar(element, current, max) {
+      const percentage = Math.max(0, (current / max) * 100);
+      element.style.width = percentage + '%';
+      element.textContent = `${Math.max(0, current)} / ${max}`;
+    }
+
+    function createClashEffect(damage, isCritical = false) {
+      const effectsContainer = document.getElementById('clashEffects');
+      
+      // Create clash burst
+      const burst = document.createElement('div');
+      burst.className = 'clash-burst';
+      effectsContainer.appendChild(burst);
+      
+      // Create damage number
+      const damageEl = document.createElement('div');
+      damageEl.className = 'damage-burst';
+      damageEl.textContent = isCritical ? `CRITICAL! ${damage}` : `${damage}`;
+      damageEl.style.top = (Math.random() * 100 - 50) + 'px';
+      damageEl.style.left = (Math.random() * 100 - 50) + 'px';
+      effectsContainer.appendChild(damageEl);
+      
+      // Show energy wave
+      const energyWave = document.getElementById('energyWave');
+      energyWave.style.display = 'block';
+      
+      // Clean up effects
+      setTimeout(() => {
+        effectsContainer.removeChild(burst);
+        effectsContainer.removeChild(damageEl);
+        energyWave.style.display = 'none';
+      }, 2000);
+    }
+
+    function animateClash(playerDamage, enemyDamage, playerCrit = false, enemyCrit = false) {
+      if (gameState.isClashing) return;
+      
+      gameState.isClashing = true;
+      const playerFighter = document.getElementById('playerFighter');
+      const enemyFighter = document.getElementById('enemyFighter');
+      const playerAvatar = document.getElementById('playerAvatar');
+      const enemyAvatar = document.getElementById('enemyAvatar');
+      
+      // Power up phase
+      playerAvatar.classList.add('power-up');
+      enemyAvatar.classList.add('power-up');
+      
+      setTimeout(() => {
+        // Charging phase
+        playerFighter.classList.add('charging');
+        enemyFighter.classList.add('charging');
+        
+        setTimeout(() => {
+          // Clash impact
+          playerFighter.classList.remove('charging');
+          enemyFighter.classList.remove('charging');
+          playerFighter.classList.add('clashing');
+          enemyFighter.classList.add('clashing');
+          
+          // Create clash effects
+          createClashEffect(Math.max(playerDamage, enemyDamage), playerCrit || enemyCrit);
+          
+          setTimeout(() => {
+            // Retreat phase
+            playerFighter.classList.remove('clashing');
+            enemyFighter.classList.remove('clashing');
+            playerFighter.classList.add('retreating');
+            enemyFighter.classList.add('retreating');
+            
+            setTimeout(() => {
+              // Reset positions
+              playerFighter.classList.remove('retreating');
+              enemyFighter.classList.remove('retreating');
+              playerAvatar.classList.remove('power-up');
+              enemyAvatar.classList.remove('power-up');
+              gameState.isClashing = false;
+            }, 1000);
+          }, 800);
+        }, 1200);
+      }, 1000);
+    }
+
+    function startTurnTimer() {
+      gameState.turnTimeLeft = 10;
+      const timerFill = document.getElementById('timerFill');
+      
+      gameState.timerInterval = setInterval(() => {
+        gameState.turnTimeLeft--;
+        const percentage = (gameState.turnTimeLeft / 10) * 100;
+        timerFill.style.width = percentage + '%';
+        
+        if (gameState.turnTimeLeft <= 0) {
+          clearInterval(gameState.timerInterval);
+          if (gameState.isPlayerTurn && gameState.gameActive && !gameState.isClashing) {
+            addLog('Time up! Auto-defending...', 'clash');
+            defendAction();
+          }
+        }
+      }, 1000);
+    }
+
+    function checkGameOver() {
+      if (gameState.playerHealth <= 0) {
+        gameState.gameActive = false;
+        playerStats.losses++;
+        clearInterval(gameState.timerInterval);
+        document.getElementById('gameOverTitle').textContent = '💀';
+        document.getElementById('gameOverMessage').textContent = 'DEFEATED! The arena claims another...';
+        document.getElementById('rewardMessage').textContent = 'Train harder and return!';
+        document.getElementById('gameOver').classList.add('show');
+        savePlayerProgress();
+        return true;
+      }
+      
+      if (gameState.enemyHealth <= 0) {
+        gameState.gameActive = false;
+        playerStats.wins++;
+        clearInterval(gameState.timerInterval);
+        
+        const xpGain = Math.floor(Math.random() * 40) + 30;
+        gameState.playerXP += xpGain;
+        
+        if (gameState.playerXP >= 100) {
+          gameState.playerXP -= 100;
+          playerStats.level++;
+          gameState.playerMaxHealth += 15;
+          gameState.playerMaxMana += 8;
+        }
+        
+        document.getElementById('gameOverTitle').textContent = '🏆';
+        document.getElementById('gameOverMessage').textContent = 'VICTORY! The crowd roars!';
+        document.getElementById('rewardMessage').textContent = `+${xpGain} XP gained! Arena Champion!`;
+        document.getElementById('gameOver').classList.add('show');
+        
+        savePlayerProgress();
+        return true;
+      }
+      
+      return false;
+    }
+
+    function updateSkillCooldowns() {
+      // Reduce cooldowns each turn
+      for (let skill in gameState.skillCooldowns) {
+        if (gameState.skillCooldowns[skill] > 0) {
+          gameState.skillCooldowns[skill]--;
+        }
+      }
+      
+      // Reduce status effects
+      for (let effect in gameState.statusEffects.player) {
+        if (gameState.statusEffects.player[effect] > 0) {
+          gameState.statusEffects.player[effect]--;
+        }
+      }
+      
+      for (let effect in gameState.statusEffects.enemy) {
+        if (gameState.statusEffects.enemy[effect] > 0) {
+          gameState.statusEffects.enemy[effect]--;
+        }
+      }
+    }
+
+    function updateSkillDisplay() {
+      const skillList = document.getElementById('skillList');
+      const classData = classes[gameState.playerClass];
+      skillList.innerHTML = '';
+      
+      for (let skillKey in classData.skills) {
+        const skill = classData.skills[skillKey];
+        const skillItem = document.createElement('div');
+        skillItem.className = 'skill-item';
+        
+        const isReady = gameState.skillCooldowns[skillKey] === 0 && gameState.playerMana >= skill.mana;
+        skillItem.classList.add(isReady ? 'ready' : 'cooldown');
+        
+        const cooldownText = gameState.skillCooldowns[skillKey] > 0 ? ` (${gameState.skillCooldowns[skillKey]})` : '';
+        skillItem.innerHTML = `
+          <div>${skill.icon} ${skill.name}${cooldownText}</div>
+          <div style="font-size: 10px; opacity: 0.8;">${skill.mana} mana</div>
+        `;
+        
+        skillList.appendChild(skillItem);
+      }
+    }
+
+    function updateButtons() {
+      const skill1Btn = document.getElementById('skill1Btn');
+      const skill2Btn = document.getElementById('skill2Btn');
+      const skill3Btn = document.getElementById('skill3Btn');
+      const skill4Btn = document.getElementById('skill4Btn');
+      const defendBtn = document.getElementById('defendBtn');
+      
+      const disabled = !gameState.isPlayerTurn || !gameState.gameActive || gameState.isClashing;
+      const classData = classes[gameState.playerClass];
+      
+      // Update button text and availability
+      skill1Btn.textContent = `${classData.skills.skill1.icon} ${classData.skills.skill1.name}`;
+      skill2Btn.textContent = `${classData.skills.skill2.icon} ${classData.skills.skill2.name}`;
+      skill3Btn.textContent = `${classData.skills.skill3.icon} ${classData.skills.skill3.name}`;
+      skill4Btn.textContent = `${classData.skills.skill4.icon} ${classData.skills.skill4.name}`;
+      
+      skill1Btn.disabled = disabled || gameState.skillCooldowns.skill1 > 0 || gameState.playerMana < classData.skills.skill1.mana;
+      skill2Btn.disabled = disabled || gameState.skillCooldowns.skill2 > 0 || gameState.playerMana < classData.skills.skill2.mana;
+      skill3Btn.disabled = disabled || gameState.skillCooldowns.skill3 > 0 || gameState.playerMana < classData.skills.skill3.mana;
+      skill4Btn.disabled = disabled || gameState.skillCooldowns.skill4 > 0 || gameState.playerMana < classData.skills.skill4.mana;
+      defendBtn.disabled = disabled;
+    }
+
+    function executeSkill(skillKey) {
+      if (!gameState.isPlayerTurn || !gameState.gameActive || gameState.isClashing) return;
+      
+      const classData = classes[gameState.playerClass];
+      const skill = classData.skills[skillKey];
+      
+      // Check cooldown and mana
+      if (gameState.skillCooldowns[skillKey] > 0) {
+        addLog(`${skill.name} is on cooldown!`, 'clash');
+        return;
+      }
+      
+      if (gameState.playerMana < skill.mana) {
+        addLog(`Not enough mana for ${skill.name}!`, 'clash');
+        return;
+      }
+      
+      clearInterval(gameState.timerInterval);
+      
+      // Calculate damage
+      let playerDamage = Math.floor(Math.random() * (skill.damage[1] - skill.damage[0] + 1)) + skill.damage[0];
+      playerDamage = Math.floor(playerDamage * classData.attackBonus);
+      
+      // Apply skill effects
+      let playerCrit = Math.random() < classData.critChance;
+      
+      switch (skill.effect) {
+        case 'critical':
+          playerCrit = Math.random() < 0.8; // High crit chance
+          break;
+        case 'multi':
+          playerDamage *= 1.5; // Multi-hit bonus
+          break;
+        case 'rage':
+          gameState.statusEffects.player.strength = 3;
+          addLog('You enter a berserker rage!', 'clash');
+          break;
+        case 'burn':
+          gameState.statusEffects.enemy.burn = 4;
+          addLog('Enemy is burning!', 'damage');
+          break;
+        case 'freeze':
+          gameState.statusEffects.enemy.freeze = 2;
+          addLog('Enemy is frozen!', 'clash');
+          break;
+        case 'poison':
+          gameState.statusEffects.enemy.poison = 5;
+          addLog('Enemy is poisoned!', 'damage');
+          break;
+        case 'stun':
+          gameState.statusEffects.enemy.stun = 1;
+          addLog('Enemy is stunned!', 'clash');
+          break;
+        case 'dodge':
+          gameState.statusEffects.player.dodge = 2;
+          addLog('You become more agile!', 'clash');
+          break;
+      }
+      
+      if (playerCrit) {
+        playerDamage *= 2;
+      }
+      
+      // Apply strength bonus
+      if (gameState.statusEffects.player.strength > 0) {
+        playerDamage = Math.floor(playerDamage * 1.3);
+      }
+      
+      gameState.playerMana -= skill.mana;
+      gameState.skillCooldowns[skillKey] = skill.cooldown;
+      
+      // Enemy counter-attack (reduced if stunned/frozen)
+      let enemyDamage = 0;
+      if (gameState.statusEffects.enemy.stun === 0 && gameState.statusEffects.enemy.freeze === 0) {
+        enemyDamage = Math.floor(Math.random() * 25 + 10);
+        const enemyCrit = Math.random() < 0.1;
+        enemyDamage = enemyCrit ? enemyDamage * 2 : enemyDamage;
+        
+        // Check player dodge
+        if (gameState.statusEffects.player.dodge > 0 && Math.random() < 0.4) {
+          enemyDamage = 0;
+          addLog('You dodge the counter-attack!', 'clash');
+        }
+      }
+      
+      // Apply damage
+      gameState.enemyHealth -= playerDamage;
+      gameState.playerHealth -= enemyDamage;
+      playerStats.totalDamage += playerDamage;
+      
+      // Log the clash
+      const skillMessage = playerCrit ? 
+        `CRITICAL ${skill.name}! ${playerDamage} damage!` :
+        `${skill.name} deals ${playerDamage} damage!`;
+      addLog(skillMessage, playerCrit ? 'critical' : 'clash');
+      
+      if (enemyDamage > 0) {
+        addLog(`Enemy counters for ${enemyDamage} damage!`, 'damage');
+      }
+      
+      // Animate the clash
+      animateClash(playerDamage, enemyDamage, playerCrit, false);
+      
+      // Update UI after animation
+      setTimeout(() => {
+        updateHealthBar(document.getElementById('playerHealth'), gameState.playerHealth, gameState.playerMaxHealth);
+        updateHealthBar(document.getElementById('enemyHealth'), gameState.enemyHealth, gameState.enemyMaxHealth);
+        updateManaBar(document.getElementById('playerMana'), gameState.playerMana, gameState.playerMaxMana);
+        updateSkillCooldowns();
+        updateButtons();
+        updateSkillDisplay();
+        
+        if (!checkGameOver()) {
+          startTurnTimer();
+        }
+      }, 3000);
+    }
+
+    function defendAction() {
+      if (!gameState.isPlayerTurn || !gameState.gameActive || gameState.isClashing) return;
+      
+      clearInterval(gameState.timerInterval);
+      
+      // Reduced enemy damage and mana recovery
+      const enemyDamage = Math.floor(Math.random() * 10 + 5);
+      gameState.playerHealth -= enemyDamage;
+      gameState.playerMana = Math.min(gameState.playerMaxMana, gameState.playerMana + 15);
+      
+      addLog(`You defend! Reduced damage (${enemyDamage}) and recovered mana!`, 'clash');
+      
+      updateHealthBar(document.getElementById('playerHealth'), gameState.playerHealth, gameState.playerMaxHealth);
+      updateManaBar(document.getElementById('playerMana'), gameState.playerMana, gameState.playerMaxMana);
+      updateButtons();
+      
+      if (!checkGameOver()) {
+        startTurnTimer();
+      }
+    }
+
+    // Action button event listeners
+    document.getElementById('skill1Btn').addEventListener('click', () => executeSkill('skill1'));
+    document.getElementById('skill2Btn').addEventListener('click', () => executeSkill('skill2'));
+    document.getElementById('skill3Btn').addEventListener('click', () => executeSkill('skill3'));
+    document.getElementById('skill4Btn').addEventListener('click', () => executeSkill('skill4'));
+    document.getElementById('defendBtn').addEventListener('click', defendAction);
+
+    // Character selection
+    document.querySelectorAll('.class-card').forEach(card => {
+      card.addEventListener('click', () => {
+        document.querySelectorAll('.class-card').forEach(c => c.classList.remove('selected'));
+        card.classList.add('selected');
+        gameState.playerClass = card.dataset.class;
+        document.getElementById('startGameBtn').disabled = false;
+      });
+    });
+
+    document.getElementById('startGameBtn').addEventListener('click', () => {
+      document.getElementById('characterSelection').classList.remove('show');
+      initializePlayer();
+      resetGame();
+    });
+
+    function initializePlayer() {
+      const classData = classes[gameState.playerClass];
+      gameState.playerMaxHealth = 100 + classData.healthBonus;
+      gameState.playerMaxMana = 50 + classData.manaBonus;
+      gameState.playerHealth = gameState.playerMaxHealth;
+      gameState.playerMana = gameState.playerMaxMana;
+      
+      // Reset cooldowns
+      gameState.skillCooldowns = {
+        skill1: 0,
+        skill2: 0,
+        skill3: 0,
+        skill4: 0
+      };
+      
+      document.getElementById('playerAvatar').textContent = classData.icon;
+      document.getElementById('playerClassDisplay').textContent = classData.name;
+      updateSkillDisplay();
+    }
+
+    function spawnRandomEnemy() {
+      const maxLevel = Math.min(5, Math.floor(playerStats.level / 2) + 1);
+      const availableEnemies = enemies.filter(e => e.level <= maxLevel);
+      const enemy = availableEnemies[Math.floor(Math.random() * availableEnemies.length)];
+      
+      gameState.currentEnemy = enemy.name;
+      gameState.enemyMaxHealth = enemy.health;
+      gameState.enemyHealth = gameState.enemyMaxHealth;
+      
+      document.getElementById('enemyAvatar').textContent = enemy.icon;
+    }
+
+    function resetGame() {
+      spawnRandomEnemy();
+      
+      gameState.playerHealth = gameState.playerMaxHealth;
+      gameState.playerMana = gameState.playerMaxMana;
+      gameState.isPlayerTurn = true;
+      gameState.gameActive = true;
+      gameState.isClashing = false;
+      
+      // Reset cooldowns and status effects
+      gameState.skillCooldowns = {
+        skill1: 0,
+        skill2: 0,
+        skill3: 0,
+        skill4: 0
+      };
+      gameState.statusEffects = {
+        player: {},
+        enemy: {}
+      };
+      
+      clearInterval(gameState.timerInterval);
+      
+      updateHealthBar(document.getElementById('playerHealth'), gameState.playerHealth, gameState.playerMaxHealth);
+      updateManaBar(document.getElementById('playerMana'), gameState.playerMana, gameState.playerMaxMana);
+      updateHealthBar(document.getElementById('enemyHealth'), gameState.enemyHealth, gameState.enemyMaxHealth);
+      document.getElementById('battleLog').innerHTML = '';
+      document.getElementById('gameOver').classList.remove('show');
+      document.getElementById('timerFill').style.width = '100%';
+      updateSkillDisplay();
+      updateButtons();
+      startTurnTimer();
+      addLog('🏟️ FIGHTERS ENTER THE ARENA! CHOOSE YOUR SKILLS!', 'clash');
+    }
+
+    async function onConfigChange(config) {
+      document.getElementById('arenaTitle').textContent = config.game_title || defaultConfig.game_title;
+      
+      const backgroundColor = config.background_color || defaultConfig.background_color;
+      const surfaceColor = config.surface_color || defaultConfig.surface_color;
+      const textColor = config.text_color || defaultConfig.text_color;
+      const primaryColor = config.primary_action_color || defaultConfig.primary_action_color;
+      const secondaryColor = config.secondary_action_color || defaultConfig.secondary_action_color;
+      
+      document.querySelector('.arena-background').style.background = 
+        `radial-gradient(circle at 30% 20%, ${primaryColor}1a 0%, transparent 50%), 
+         radial-gradient(circle at 70% 80%, ${secondaryColor}1a 0%, transparent 50%), 
+         linear-gradient(135deg, ${backgroundColor} 0%, ${surfaceColor} 50%, ${backgroundColor} 100%)`;
+      
+      document.body.style.color = textColor;
+      
+      const attackBtns = document.querySelectorAll('.attack-btn');
+      attackBtns.forEach(btn => {
+        btn.style.background = `linear-gradient(135deg, ${primaryColor} 0%, ${primaryColor}dd 100%)`;
+      });
+    }
+
+    // Initialize SDK and game
+    if (window.dataSdk) {
+      window.dataSdk.init(dataHandler);
+    }
+
+    if (window.elementSdk) {
+      window.elementSdk.init({
+        defaultConfig,
+        onConfigChange,
+        mapToCapabilities: (config) => ({
+          recolorables: [
+            {
+              get: () => config.background_color || defaultConfig.background_color,
+              set: (value) => {
+                config.background_color = value;
+                window.elementSdk.setConfig({ background_color: value });
+              }
+            },
+            {
+              get: () => config.surface_color || defaultConfig.surface_color,
+              set: (value) => {
+                config.surface_color = value;
+                window.elementSdk.setConfig({ surface_color: value });
+              }
+            },
+            {
+              get: () => config.text_color || defaultConfig.text_color,
+              set: (value) => {
+                config.text_color = value;
+                window.elementSdk.setConfig({ text_color: value });
+              }
+            },
+            {
+              get: () => config.primary_action_color || defaultConfig.primary_action_color,
+              set: (value) => {
+                config.primary_action_color = value;
+                window.elementSdk.setConfig({ primary_action_color: value });
+              }
+            },
+            {
+              get: () => config.secondary_action_color || defaultConfig.secondary_action_color,
+              set: (value) => {
+                config.secondary_action_color = value;
+                window.elementSdk.setConfig({ secondary_action_color: value });
+              }
+            }
+          ],
+          borderables: [],
+          fontEditable: undefined,
+          fontSizeable: undefined
+        }),
+        mapToEditPanelValues: (config) => new Map([
+          ["game_title", config.game_title || defaultConfig.game_title],
+          ["arena_theme", config.arena_theme || defaultConfig.arena_theme]
+        ])
+      });
+    }
+
+    // Initialize game
+    createEnergyParticles();
+    document.getElementById('characterSelection').classList.add('show');
+  </script>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'99bf00ed5390bc49',t:'MTc2MjcwOTA2Ni4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>

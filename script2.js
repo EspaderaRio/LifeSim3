@@ -116,6 +116,7 @@ class UltimateLifeSimulator {
     }
 
     init() {
+        this.initializeUI();
         this.bindEvents();
         this.updateDisplay();
         this.startGameLoops();
@@ -783,9 +784,13 @@ showGoalsMenu() {
 }
 
 // ===================== LINK UI BUTTON ===================== //
-document.getElementById("goals-btn").addEventListener("click", () => {
-  window.uls.showGoalsMenu();
-});
+initializeUI() {
+  const goalsBtn = document.getElementById("goals-btn");
+  if (goalsBtn) {
+    goalsBtn.addEventListener("click", () => this.showGoalsMenu());
+  }
+}
+
 
 
     // Background System

@@ -1,4 +1,4 @@
-// Ultimate Life Simulator Pro - Complete Game System
+ // Ultimate Life Simulator Pro - Complete Game System
         class UltimateLifeSimulator {
             constructor() {
                 this.gameState = {

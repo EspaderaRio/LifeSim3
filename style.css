@@ -575,3 +575,4 @@
                 font-size: 20px;
             }
         }
+@view-transition { navigation: auto; }

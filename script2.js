@@ -785,11 +785,34 @@ showGoalsMenu() {
 
 // ===================== LINK UI BUTTON ===================== //
 initializeUI() {
-  const goalsBtn = document.getElementById("goals-btn");
-  if (goalsBtn) {
-    goalsBtn.addEventListener("click", () => this.showGoalsMenu());
-  }
+  console.log("UI initialized.");
+
+  // Example: make sure all UI elements exist and show initial values
+  const safeText = (id, text) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = text;
+  };
+
+  // Basic stats (assuming your HTML has these IDs)
+  safeText('age', this.gameState.age);
+  safeText('money', `$${this.gameState.money.toLocaleString()}`);
+  safeText('profession', this.gameState.profession);
+  safeText('relationship', this.gameState.relationship);
+
+  // Example UI update for subjects
+  Object.entries(this.gameState.subjects).forEach(([key, data]) => {
+    const card = document.querySelector(`[data-subject="${key}"]`);
+    if (card) {
+      const progress = card.querySelector('.progress-fill');
+      if (progress) progress.style.width = `${data.progress}%`;
+      const status = card.querySelector('.status');
+      if (status) status.textContent = `Level ${data.level}`;
+    }
+  });
+
+  // You can expand this later to dynamically create or reset panels, modals, etc.
 }
+
 
 
 

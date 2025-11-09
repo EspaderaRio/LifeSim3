@@ -696,6 +696,97 @@ class UltimateLifeSimulator {
             rivalDisplay.textContent = `🏆 Rival: ${topRival.name} ($${topRival.money.toLocaleString()})`;
         }
     }
+    // ===================== DYNAMIC LIFE GOALS SYSTEM ===================== //
+updateWeather() {
+  // Preserve the name "updateWeather" but run life-goal logic
+  if (!this.gameState.lifeGoals) this.gameState.lifeGoals = [];
+
+  // Base pool of possible random goals
+  const goalPool = [
+    { title: "Buy your first car 🚗", condition: gs => gs.money >= 5000 },
+    { title: "Own a house 🏠", condition: gs => gs.reputation >= 60 && gs.money >= 100000 },
+    { title: "Reach 100 happiness 🌈", condition: gs => gs.happiness >= 100 },
+    { title: "Get a high-paying job 💼", condition: gs => gs.skills >= 80 && gs.money >= 20000 },
+    { title: "Travel abroad 🌍", condition: gs => gs.money >= 30000 && gs.happiness >= 70 },
+    { title: "Become famous ⭐", condition: gs => gs.reputation >= 100 },
+    { title: "Build a business 🏢", condition: gs => gs.money >= 50000 && gs.skills >= 60 },
+    { title: "Reach $1,000,000 💰", condition: gs => gs.money >= 1000000 },
+    { title: "Find love ❤️", condition: gs => gs.relationship && gs.relationship !== "Single" }
+  ];
+
+  // If the player has fewer than 3 active goals, add a random one
+  if (this.gameState.lifeGoals.filter(g => !g.completed).length < 3) {
+    const newGoal = goalPool[Math.floor(Math.random() * goalPool.length)];
+    const alreadyHas = this.gameState.lifeGoals.some(g => g.title === newGoal.title);
+    if (!alreadyHas) {
+      this.gameState.lifeGoals.push({
+        title: newGoal.title,
+        condition: newGoal.condition.toString(), // store as string for save compatibility
+        completed: false
+      });
+      this.showNotification(`🎯 New Life Goal: ${newGoal.title}`, "info");
+    }
+  }
+
+  // Check progress
+  for (let goal of this.gameState.lifeGoals) {
+    if (!goal.completed) {
+      const condFn = eval("(" + goal.condition + ")");
+      if (condFn(this.gameState)) {
+        goal.completed = true;
+        this.showNotification(`✅ Goal Completed: ${goal.title}`, "success");
+        this.gameState.happiness += 10;
+        this.gameState.reputation += 8;
+      }
+    }
+  }
+}
+
+// ===================== GOAL MANAGEMENT UI ===================== //
+showGoalsMenu() {
+  const modal = document.createElement("div");
+  modal.className = "modal-overlay";
+  modal.innerHTML = `
+    <div class="modal-content">
+      <span class="close">&times;</span>
+      <h2>🎯 Life Goals</h2>
+      <div id="goal-list"></div>
+      <input type="text" id="custom-goal" placeholder="Enter your own goal...">
+      <button id="add-goal">Add Goal</button>
+    </div>
+  `;
+  document.body.appendChild(modal);
+
+  const list = modal.querySelector("#goal-list");
+  const renderGoals = () => {
+    list.innerHTML = this.gameState.lifeGoals.map(
+      g => `<p>${g.completed ? "✅" : "⏳"} ${g.title}</p>`
+    ).join("");
+  };
+  renderGoals();
+
+  modal.querySelector("#add-goal").onclick = () => {
+    const text = modal.querySelector("#custom-goal").value.trim();
+    if (text) {
+      this.gameState.lifeGoals.push({
+        title: text,
+        condition: "() => false", // manual goals tracked by user
+        completed: false
+      });
+      this.showNotification(`Added custom goal: ${text}`, "success");
+      renderGoals();
+      modal.querySelector("#custom-goal").value = "";
+    }
+  };
+
+  modal.querySelector(".close").onclick = () => modal.remove();
+}
+
+// ===================== LINK UI BUTTON ===================== //
+document.getElementById("goals-btn").addEventListener("click", () => {
+  window.uls.showGoalsMenu();
+});
+
 
     // Background System
     updateBackground() {

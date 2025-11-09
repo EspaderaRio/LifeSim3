@@ -584,8 +584,79 @@
         }
     </style>
   <style>@view-transition { navigation: auto; }</style>
-  <script src="/_sdk/data_sdk.js" type="text/javascript"></script>
-  <script src="/_sdk/element_sdk.js" type="text/javascript"></script>
+  <script>// ===================== DATA SDK (GLOBAL) ===================== //
+
+window.dataSDK = {
+  SAVE_KEY: "lifesim3_save",
+
+  save(state) {
+    localStorage.setItem(this.SAVE_KEY, JSON.stringify(state));
+  },
+
+  load() {
+    const raw = localStorage.getItem(this.SAVE_KEY);
+    if (!raw) return null;
+
+    try {
+      return JSON.parse(raw);
+    } catch {
+      return null;
+    }
+  },
+
+  reset() {
+    localStorage.removeItem(this.SAVE_KEY);
+  },
+
+  updateStat(state, key, amount) {
+    if (typeof state[key] === "number") {
+      state[key] = Math.max(0, state[key] + amount);
+    }
+    return state;
+  }
+};
+</script>
+  <script>
+   // ===================== ELEMENT SDK (GLOBAL) ===================== //
+// Everything is added to window.elementSDK
+
+window.elementSDK = {
+  
+  createModal(title, content) {
+    const overlay = document.createElement("div");
+    overlay.className = "modal-overlay";
+
+    const modal = document.createElement("div");
+    modal.className = "modal-content";
+    modal.innerHTML = `
+      <span class="close">&times;</span>
+      <h2>${title}</h2>
+      <div class="modal-body">${content}</div>
+    `;
+
+    overlay.appendChild(modal);
+    document.body.appendChild(overlay);
+
+    modal.querySelector(".close").onclick = () => overlay.remove();
+
+    return overlay;
+  },
+
+  showToast(msg, time = 2500) {
+    const toast = document.createElement("div");
+    toast.className = "toast";
+    toast.textContent = msg;
+    document.body.appendChild(toast);
+
+    setTimeout(() => toast.remove(), time);
+  },
+
+  removeAll() {
+    document.querySelectorAll(".modal-overlay, .toast").forEach(e => e.remove());
+  }
+};
+
+  </script>
   <script src="tailwindcss.js" type="text/javascript"></script>
  </head>
  <body>
